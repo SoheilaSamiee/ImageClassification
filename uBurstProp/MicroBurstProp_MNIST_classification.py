@@ -13,8 +13,8 @@ np.random.seed(42)
 input_size = 28 * 28    # img_size = (28,28) ---> 28*28=784 in total
 num_classes = 10        # number of output classes discrete range [0,9]
 lr = 0.1                # Learning rate: size of step
-repeat_count = 100#100      # Repeating each class for a better noise attenuation
-hidden_n = 50000#50000        # Nodes in the hidden layer
+repeat_count = 100      # Repeating each class for a better noise attenuation
+hidden_n = 50000        # Nodes in the hidden layer
 output_n = repeat_count * num_classes
 
 num_epochs = 600 # number of times which the entire dataset is passed throughout the model
