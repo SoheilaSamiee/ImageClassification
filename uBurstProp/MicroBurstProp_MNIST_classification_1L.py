@@ -12,16 +12,16 @@ np.random.seed(42)
 # Defining details of the model
 input_size = 28 * 28    # img_size = (28,28) ---> 28*28=784 in total
 num_classes = 10        # number of output classes discrete range [0,9]
-lr = 0.1                # Learning rate: size of step
+lr = 0.05               # Learning rate: size of step
 repeat_count = 100      # Repeating each class for a better noise attenuation
-hidden_n = 50000        # Nodes in the hidden layer
+hidden_n = 0        # Nodes in the hidden layer
 output_n = repeat_count * num_classes
 
-num_epochs = 20        # number of times which the entire dataset is passed throughout the model
-num_images = 100         # Number of images in each batch for updating P
+num_epochs = 20       # number of times which the entire dataset is passed throughout the model
+num_images = 100       # Number of images in each batch for updating P
 
 # ------------------------------------------------------------------------------
-#####               Importing data (MNIST using Keras)
+      ##               Importing data (MNIST using Keras)
 # -------------------------------------------------------------------------------
 
 # for importing data in numpy format
@@ -99,22 +99,6 @@ class Sigmoid(Layer):
         return grad_output * sigmoid_grad
 
 
-class ReLU(Layer):
-    def __init__(self):
-        # elementwise rectified linear operation on all inputs
-        pass
-
-    def forward(self, input):
-        # apply elementwise rectification to input: [batch size x features]
-        relu_forward = np.maximum(input, 0)
-        return relu_forward
-
-    def backward(self, input, grad_output):
-        # compute gradient of loss with respect to RelU
-        relu_grad = input > 0  # np.greater(input, 0).astype(int)
-        return grad_output * relu_grad
-
-
 class Dense_uBurstProp(Layer):
     def __init__(self, input_units, output_units, next_layer_units=0, learning_rate=0.1):
 
@@ -137,7 +121,7 @@ class Dense_uBurstProp(Layer):
         # event, burst, burst probability variables, eligibility traces, burst counts, and event count
         self.E = np.zeros(output_units)
         self.B = np.zeros(output_units)
-        self.P = np.zeros(output_units) + 1  # Based burstprop paper initial values suggestion
+        self.P = np.zeros(output_units) + 0.2  # Based burstprop paper initial values suggestion
         self.G = np.zeros(input_units)
         self.BK = np.zeros(output_units)
         self.EK = np.zeros(output_units) + 0.001  # To avoid multiplication by 0
@@ -208,16 +192,19 @@ class Dense_uBurstProp(Layer):
         self.W += (self.learning_rate * delta_W - lambda_param * self.W)
         self.b += self.learning_rate * delta_b
 
-        # # propagate the burst back in the layer to produce a feedback matrix
+        #print([delta_W.max(), delta_W.min(), self.W.max(), self.W.min()])
+
         return self.B
+
 
 # Define the network and do the loops
 learning_rate = lr
 
-# Building the nework
+# ------------------------------------------------------------
+               # Building the nework
+# -------------------------------------------------------------
 network = []
-network.append(Dense_uBurstProp(X_train.shape[0], hidden_n, output_n, learning_rate))
-network.append(Dense_uBurstProp(hidden_n, output_n, 0, learning_rate))
+network.append(Dense_uBurstProp(X_train.shape[0], output_n, 0, learning_rate))
 
 
 def forward(network, X):
@@ -282,6 +269,7 @@ def train(network, X, y, BP_update):
     output = forward(network, X)  # repeated one output
 
     # Set the targets based on batch size
+
     if isinstance(y, (list, tuple, np.ndarray)):
         y_one_transform = np.zeros([y.shape[0], num_classes])
         for i, e in enumerate(y):
@@ -299,6 +287,7 @@ def train(network, X, y, BP_update):
 
     # Calculate error rate
     assert targets.shape == output.shape, "The size of output of the network does not match the repeated ones target"
+#    error_rate = (np.square(output - targets)).mean()
     error_rate = np.mean(output == targets)
 
     return error_rate.mean()
@@ -342,46 +331,39 @@ for epoch in range(num_epochs):
     train_log.append(np.mean(predict(network, X_train) == y_train))
     val_log.append(np.mean(predict(network, X_val) == y_val))
 
-# Printing and illustrating the error
-clear_output()
-print("Epoch", epoch)
-print("Train accuracy:", train_log[-1])
-print("Val accuracy:", val_log[-1])
-print("Training Error:", ER_rate[-1])
+    # Printing and illustrating the error
+    clear_output()
+    print("Epoch", epoch)
+    print("Train accuracy:", train_log[-1])
+    print("Val accuracy:", val_log[-1])
+    print("Training Error:", ER_rate[-1])
 
-plt.subplot(1, 2, 1)
-plt.plot(train_log, label='train accuracy')
-plt.plot(val_log, label='val accuracy')
-plt.legend(loc='best')
-plt.grid()
+    plt.subplot(1, 2, 1)
+    plt.plot(train_log, label='train accuracy')
+    plt.plot(val_log, label='val accuracy')
+    plt.legend(loc='best')
+    plt.grid()
 
-plt.subplot(1, 2, 2)
-plt.plot(ER_rate, label='Training Error')
-plt.legend(loc='best')
-plt.grid()
-# plt.show()
-
-# Saving the figure
-plt.savefig('Accuracy_Error_uBurstProp_4_fullMNIST.png')
+    plt.subplot(1, 2, 2)
+    plt.plot(ER_rate, label='Training Error')
+    plt.legend(loc='best')
+    plt.grid()
+    # plt.show()
+    # Saving the figure
+    plt.savefig('Accuracy_Error_uBurstProp_1L_test3_lr001_RC200.png')
 
 
 # Saving the trained network
-# Saving the trained network in a file
 import yaml
 from pathlib import Path
 
 network_dictionary = dict(N1 = network[0].__dict__, N2 = network[1].__dict__)
 performance_dictionary = dict(Training_acc = train_log , Val_acc = val_log, TrainingEr = ER_rate)
-#base_dir = "python_projects"
-#path = Path(base_dir) # + 'Colab Notebooks')
-#folder = "uBurstProp_parameters"
-#dest = path/folder
-#dest.mkdir(parents=True, exist_ok=True)
-dest = Path("python_projects/uBurstProp")
-with open(r'network_model.yml', 'w') as outfile:
+#dest = Path("python_projects/uBurstProp")
+with open(r'network_model_1L.yml', 'w') as outfile:
     yaml.dump(network_dictionary, outfile, default_flow_style=False)
 
-with open(r'result_perf.yml', 'w') as outfile:
+with open(r'result_perf_1L.yml', 'w') as outfile:
     yaml.dump(performance_dictionary, outfile, default_flow_style=False)
 
 
